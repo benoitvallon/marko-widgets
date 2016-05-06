@@ -53,16 +53,18 @@ __src/pages/index/widget.js:__
 ```javascript
 
 module.exports = require('marko-widgets').defineComponent({
-	init: function() {
-		var rootEl = this.el; // this.el returns the root element that the widget is bound to
-	    var self = this;
+    template: require('./template.marko'),
 
-	    rootEl.addEventListener('click', function() {
-	        self.addText('You clicked on the root element!');
-	    });
-	},
+    init: function() {
+        var rootEl = this.el; // this.el returns the root element that the widget is bound to
+        var self = this;
 
-	addText: function(text) {
+        rootEl.addEventListener('click', function() {
+            self.addText('You clicked on the root element!');
+        });
+    },
+
+    addText: function(text) {
         this.el.appendChild(document.createTextNode(text));
     }
 })
@@ -74,34 +76,30 @@ When a widget is initially rendered, it is passed in an initial set of propertie
 
 ```javascript
 require('fancy-checkbox').render({
-		checked: true,
-		label: 'Foo'
-	});
+    checked: true,
+    label: 'Foo'
+});
 ```
-
-
 
 If a widget is stateful, then the state should be derived from the input properties and the template data should then be derived from the state. If a widget is not stateful, then the template data should be derived directly from the input properties. If you need to normalize the input properties then you can implement the `getInitialProps(input, out)` method as shown below:
 
-
 ```javascript
 module.exports = require('marko-widgets').defineComponent({
-	template: require('./template.marko'),
+    // ...
+    getInitialProps: function(input, out) {
+        return {
+            size: input.size ? input.size.toLowerCase() : 'normal'
+        };
+    },
 
-	getInitialProps: function(input, out) {
-		return {
-			size: input.size ? input.size.toLowerCase() : 'normal'
-		};
-	},
-
-	getTemplateData: function(state, input) {
-		// input will be the value returned by getInitialProps()
-		// ...
-	}
-
-	// ...
+    getTemplateData: function(state, input) {
+        // input will be the value returned by getInitialProps()
+    }
+    // ...
 });
 ```
+
+If a stateful widget is being re-rendered then the `input` argument will always be `null`. For a stateless widget, the `state` argument will be `null`.
 
 ## Widget Template
 
@@ -109,19 +107,11 @@ Every widget should have an associated Marko template that will be used to rende
 
 ```javascript
 module.exports = require('marko-widgets').defineComponent({
-	template: require('./template.marko'),
-
-	getTemplateData: function(state, input, out) {
-		return {
-			name: input.name
-		};
-	},
-
-	...
+    // ...
+    template: require('./template.marko')
+    // ...
 });
 ```
-
-The `getTemplateData(state, input, out)` method is used to build the view model that gets passed to the template based on the state and/or input. If a widget is stateful then the template data should be derived only from the `state`. If a widget is stateless then the template data should be derived only from the `input`. If a stateful widget is being re-rendered then the `input` argument will always be `null`. For a stateless widget, the `state` argument will be `null`.
 
 ## Widget State
 
@@ -129,31 +119,29 @@ A stateful widget will maintain state as part of the widget that instance. If th
 
 ```javascript
 module.exports = require('marko-widgets').defineComponent({
-	template: require('./template.marko'),
+    // ...
+    getInitialState: function(input, out) {
+        return {
+            name: input.name,
+            selected: input.selected || false;
+        }
+    },
 
-	getInitialState: function(input, out) {
-		return {
-			name: input.name,
-			selected: input.selected || false;
-		}
-	},
+    getTemplateData: function(state, input) {
+        return {
+            name: state.name,
+            color: state.selected ? 'yellow' : 'transparent'
+        };
+    },
 
-	getTemplateData: function(state, input) {
-		var style = ;
+    handleClick: function() {
+        this.setState('selected', true);
+    },
 
-		return {
-			name: state.name,
-			color: state.selected ? 'yellow' : 'transparent'
-		};
-	},
-
-	handleClick: function() {
-		this.setState('selected', true);
-	},
-
-	isSelected: function() {
-		return this.state.selected;
-	}
+    isSelected: function() {
+        return this.state.selected;
+    }
+    // ...
 });
 ```
 
@@ -171,19 +159,17 @@ Arbitrary widget configuration data determined at render time can be provided to
 
 ```javascript
 module.exports = require('marko-widgets').defineComponent({
-	template: require('./template.marko'),
+    // ...
+    getWidgetConfig: function(input, out) {
+        return {
+            foo: 'bar'
+        }
+    },
 
-	getWidgetConfig: function(input, out) {
-		return {
-			foo: 'bar'
-		}
-	},
-
-	init: function(widgetConfig) {
-		var foo = widgetConfig.foo; // foo === 'bar'
-	},
-
-	...
+    init: function(widgetConfig) {
+        var foo = widgetConfig.foo; // foo === 'bar'
+    }
+    // ...
 });
 
 ```
@@ -218,10 +204,10 @@ Marko Widgets also supports referencing _repeated_ nested widgets as shown below
 ```xml
 <div class="my-component" w-bind="./widget">
     <ul>
-		<li for="todoItem in data.todoItems">
-			<app-todo-item w-id="todoItems[]" todo-item="todoItem"/>
-		</li>
-	</ul>
+        <li for="todoItem in data.todoItems">
+            <app-todo-item w-id="todoItems[]" todo-item="todoItem"/>
+        </li>
+    </ul>
 </div>
 ```
 
@@ -284,10 +270,10 @@ Marko Widgets also supports referencing _repeated_ nested DOM elements as shown 
 
 ```xml
 <ul>
-	<li for="color in ['red', 'green', 'blue']"
-		w-id="colorListItems[]">
-		$color
-	</li>
+    <li for="color in ['red', 'green', 'blue']"
+        w-id="colorListItems[]">
+        $color
+    </li>
 </ul>
 ```
 
@@ -310,10 +296,10 @@ Listeners can be attached declaratively as shown in the following sample code:
 
 ```xml
 <div w-bind>
-	<form w-onsubmit="handleFormSubmit">
-		<input type="text" value="email" w-onchange="handleEmailChange">
-		<button>Submit</button>
-	</form>
+    <form w-onsubmit="handleFormSubmit">
+        <input type="text" value="email" w-onchange="handleEmailChange">
+        <button>Submit</button>
+    </form>
 </div>
 ```
 
@@ -322,22 +308,22 @@ And then in the widget:
 ```javascript
 
 module.exports = require('marko-widgets').defineComponent({
-	// ...
+    // ...
 
-	handleFormSubmit: function(event, el) {
-		event.preventDefault();
-		// ...
-	},
+    handleFormSubmit: function(event, el) {
+        event.preventDefault();
+        // ...
+    },
 
-	handleEmailChange: function(event, el) {
-		var email = el.value;
-		this.validateEmail(email);
-		// ...
-	},
+    handleEmailChange: function(event, el) {
+        var email = el.value;
+        this.validateEmail(email);
+        // ...
+    },
 
-	validateEmail: function(email) {
-		// ...
-	}
+    validateEmail: function(email) {
+        // ...
+    }
 });
 ```
 
@@ -353,10 +339,10 @@ You can also choose to add listeners in JavaScript code by assigning an "element
 
 ```xml
 <div w-bind>
-	<form w-id="form">
-		<input type="text" value="email" w-id="email">
-		<button>Submit</button>
-	</form>
+    <form w-id="form">
+        <input type="text" value="email" w-id="email">
+        <button>Submit</button>
+    </form>
 </div>
 ```
 
@@ -365,37 +351,37 @@ And then in the widget:
 ```javascript
 
 module.exports = require('marko-widgets').defineComponent({
-	// ...
+    // ...
 
-	init: function() {
-		var self = this;
+    init: function() {
+        var self = this;
 
-		var formEl = this.getEl('form');
-		formEl.addEventListener('submit', function(event) {
-			self.handleFormSubmit(event, formEl)
-		});
+        var formEl = this.getEl('form');
+        formEl.addEventListener('submit', function(event) {
+            self.handleFormSubmit(event, formEl)
+        });
 
-		// Or use jQuery if that is loaded on your page:
-		var emailEl = this.getEl('email');
-		$(emailEl).on('change', function(event) {
-			self.handleEmailChange(event, emailEl)
-		});
-	},
+        // Or use jQuery if that is loaded on your page:
+        var emailEl = this.getEl('email');
+        $(emailEl).on('change', function(event) {
+            self.handleEmailChange(event, emailEl)
+        });
+    },
 
-	handleFormSubmit: function(event, el) {
-		event.preventDefault();
-		// ...
-	},
+    handleFormSubmit: function(event, el) {
+        event.preventDefault();
+        // ...
+    },
 
-	handleEmailChange: function(event, el) {
-		var email = el.value;
-		this.validateEmail(email);
-		// ...
-	},
+    handleEmailChange: function(event, el) {
+        var email = el.value;
+        this.validateEmail(email);
+        // ...
+    },
 
-	validateEmail: function(email) {
-		// ...
-	}
+    validateEmail: function(email) {
+        // ...
+    }
 });
 ```
 
@@ -407,12 +393,12 @@ Listeners can be attached declaratively as shown in the following sample code:
 
 ```xml
 <div w-bind="./widget">
-	<app-overlay title="My Overlay"
-		w-onBeforeHide="handleOverlayBeforeHide">
+    <app-overlay title="My Overlay"
+        w-onBeforeHide="handleOverlayBeforeHide">
 
-		Content for overlay
+        Content for overlay
 
-	</app-overlay>
+    </app-overlay>
 </div>
 ```
 
@@ -420,9 +406,9 @@ And then in the widget:
 
 ```javascript
 module.exports = require('marko-widgets').defineComponent({
-	// ...
+    // ...
 
-	handleOverlayBeforeHide: function(event) {
+    handleOverlayBeforeHide: function(event) {
         console.log('The overlay is about to be hidden!');
     }
 });
@@ -432,12 +418,12 @@ You can also choose to add listeners in JavaScript code by assigning an "id" to 
 
 ```xml
 <div w-bind="./widget">
-	<app-overlay title="My Overlay"
-		w-id="myOverlay">
+    <app-overlay title="My Overlay"
+        w-id="myOverlay">
 
-		Content for overlay
+        Content for overlay
 
-	</app-overlay>
+    </app-overlay>
 </div>
 ```
 
@@ -445,20 +431,20 @@ And then in the widget:
 
 ```javascript
 module.exports = require('marko-widgets').defineComponent({
-	// ...
+    // ...
 
-	init: function() {
-		var self = this;
+    init: function() {
+        var self = this;
 
-		var myOverlay = this.getWidget('myOverlay');
+        var myOverlay = this.getWidget('myOverlay');
 
-		this.subscribeTo(myOverlay)
-			.on('beforeHide', function(event) {
-				self.handleOverlayBeforeHide(event);
-			});
-	},
+        this.subscribeTo(myOverlay)
+            .on('beforeHide', function(event) {
+                self.handleOverlayBeforeHide(event);
+            });
+    },
 
-	handleOverlayBeforeHide: function(event) {
+    handleOverlayBeforeHide: function(event) {
         console.log('The overlay is about to be hidden!');
     }
 });
@@ -478,12 +464,12 @@ This optional method is used to normalize the input properties during the render
 
 ```javascript
 {
-	getInitialProps: function(input, out) {
-		return {
-			name: input.name.toUpperCase()
-		}
-	},
-	...
+    getInitialProps: function(input, out) {
+        return {
+            name: input.name.toUpperCase()
+        }
+    },
+    ...
 }
 ```
 
@@ -493,12 +479,12 @@ This optional method is used to determine the initial state for a newly rendered
 
 ```javascript
 {
-	getInitialState: function(input, out) {
-		return {
-			counter: input.counter == null ? 0 : input.counter
-		}
-	},
-	...
+    getInitialState: function(input, out) {
+        return {
+            counter: input.counter == null ? 0 : input.counter
+        }
+    },
+    ...
 }
 ```
 
@@ -548,11 +534,11 @@ Every widget defined using `defineComponent(...)` exports a `render(input)` meth
 
 ```javascript
 var widget = require('fancy-checkbox').render({
-		checked: true,
-		label: 'Foo'
-	})
-	.appendTo(document.body)
-	.getWidget();
+        checked: true,
+        label: 'Foo'
+    })
+    .appendTo(document.body)
+    .getWidget();
 
 widget.setChecked(false);
 widget.setLabel('Bar');
@@ -617,10 +603,10 @@ In the above example, the final HTML will be similar to the following:
         <title>Widgets Demo</title>
     </head>
     <body>
-		<div>Marko Widgets: Bind</div>
-		<div class="my-component" id="w0" data-widget="/src/pages/index/widget">
-			<div>Click Me</div>
-		</div>
+        <div>Marko Widgets: Bind</div>
+        <div class="my-component" id="w0" data-widget="/src/pages/index/widget">
+            <div>Click Me</div>
+        </div>
         <script src="static/index-8947595a.js" type="text/javascript"></script>
         <span style="display:none;" data-ids="w0" id="rwidgets"></span>
     </body>
@@ -638,15 +624,15 @@ var markoWidgets = require('marko-widgets');
 var template = require('./template.marko');
 
 module.exports = function(req, res) {
-	template.render(viewModel, function(err, html, out) {
-		var widgetIds = markoWidgets.getRenderedWidgetIds(out);
+    template.render(viewModel, function(err, html, out) {
+        var widgetIds = markoWidgets.getRenderedWidgetIds(out);
 
-		// Serialize the HTML and the widget IDs to the browser
-		res.json({
-	            html: html,
-	            widgetIds: widgetIds
-	        });
-	});
+        // Serialize the HTML and the widget IDs to the browser
+        res.json({
+                html: html,
+                widgetIds: widgetIds
+            });
+    });
 }
 ```
 
@@ -701,8 +687,8 @@ ___src/components/app-hello/template.marko:___
 
 ```xml
 <div w-bind
-	w-on-click="handleClick">
-	Hello ${data.name}!
+    w-on-click="handleClick">
+    Hello ${data.name}!
 </div>
 ```
 
@@ -710,17 +696,17 @@ ___src/components/app-hello/index.js:___
 
 ```javascript
 module.exports = require('marko-widgets').defineComponent({
-	template: require('./template.marko'),
+    template: require('./template.marko'),
 
-	getTemplateData: function(state, input) {
-		return {
-			name: input.name
-		};
-	},
+    getTemplateData: function(state, input) {
+        return {
+            name: input.name
+        };
+    },
 
-	handleClick: function() {
-		this.el.style.backgroundColor = 'yellow';
-	}
+    handleClick: function() {
+        this.el.style.backgroundColor = 'yellow';
+    }
 });
 ```
 
@@ -738,8 +724,8 @@ ___src/components/app-hello/template.marko:___
 
 ```xml
 <div w-bind="./widget"
-	w-on-click="handleClick">
-	Hello ${data.name}!
+    w-on-click="handleClick">
+    Hello ${data.name}!
 </div>
 ```
 
@@ -747,13 +733,13 @@ ___src/components/app-hello/renderer.js:___
 
 ```javascript
 module.exports = require('marko-widgets').defineRenderer({
-	template: require('./template.marko'),
+    template: require('./template.marko'),
 
-	getTemplateData: function(state, input) {
-		return {
-			name: input.name
-		};
-	}
+    getTemplateData: function(state, input) {
+        return {
+            name: input.name
+        };
+    }
 });
 ```
 
@@ -761,9 +747,9 @@ ___src/components/app-hello/widget.js:___
 
 ```javascript
 module.exports = require('marko-widgets').defineWidget({
-	handleClick: function() {
-		this.el.style.backgroundColor = 'yellow';
-	}
+    handleClick: function() {
+        this.el.style.backgroundColor = 'yellow';
+    }
 });
 ```
 
